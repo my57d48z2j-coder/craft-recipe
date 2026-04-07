@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クラフトバンド レシピメーカー</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Shippori+Mincho:wght@400;600&display=swap');
+  :root {
+    --pink: #f2a7b8; --deep-pink: #c94f6d; --light-pink: #fde8ee;
+    --cream: #fdf8f5; --warm-gray: #8a7a7a; --dark: #3a2a2a;
+    --shadow: rgba(201,79,109,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Zen Maru Gothic', sans-serif; background: var(--cream); color: var(--dark); min-height: 100vh; }
+  header { background: linear-gradient(135deg, var(--deep-pink) 0%, var(--pink) 100%); padding: 18px 20px 14px; text-align: center; }
+  header h1 { font-family: 'Shippori Mincho', serif; color: white; font-size: 19px; letter-spacing: 0.08em; }
+  header p { color: rgba(255,255,255,0.85); font-size: 11px; margin-top: 3px; }
+  .save-indicator { background: rgba(255,255,255,0.2); color: white; font-size: 11px; padding: 3px 10px; border-radius: 20px; display: inline-block; margin-top: 5px; }
+  .tabs { display: flex; background: white; border-bottom: 2px solid var(--light-pink); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px var(--shadow); }
+  .tab { flex: 1; padding: 11px 4px; text-align: center; font-size: 11px; color: var(--warm-gray); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .tab.active { color: var(--deep-pink); border-bottom-color: var(--deep-pink); font-weight: 700; }
+  .tab-icon { display: block; font-size: 17px; margin-bottom: 2px; }
+  .content { display: none; padding: 14px; max-width: 600px; margin: 0 auto; padding-bottom: 100px; }
+  .content.active { display: block; }
+  .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 12px var(--shadow); border: 1px solid rgba(242,167,184,0.2); }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--deep-pink); margin-bottom: 12px; }
+  input[type="text"], textarea, select { width: 100%; padding: 10px 12px; border: 1.5px solid #e8d0d8; border-radius: 10px; font-family: 'Zen Maru Gothic', sans-serif; font-size: 14px; color: var(--dark); background: var(--cream); outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  input[type="text"]:focus, textarea:focus { border-color: var(--pink); background: white; }
+  textarea { resize: vertical; min-height: 70px; line-height: 1.6; }
+  label { display: block; font-size: 12px; color: var(--warm-gray); margin-bottom: 5px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+  .material-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .material-row input { flex: 1; }
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 10px 16px; border-radius: 50px; border: none; font-family: 'Zen Maru Gothic', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, var(--deep-pink), var(--pink)); color: white; box-shadow: 0 4px 12px rgba(201,79,109,0.3); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-secondary { background: var(--light-pink); color: var(--deep-pink); }
+  .btn-success { background: #e8f5e9; color: #2e7d32; }
+  .btn-danger { background: #fff0f0; color: #cc4444; padding: 8px 10px; font-size: 12px; border-radius: 8px; }
+  .btn-sm { padding: 7px 12px; font-size: 12px; }
+  .step-card { background: var(--cream); border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1.5px solid rgba(242,167,184,0.3); }
+  .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--deep-pink); color: white; border-radius: 50%; font-size: 13px; font-weight: 700; }
+  .photo-upload { border: 2px dashed var(--pink); border-radius: 12px; padding: 14px; text-align: center; background: var(--light-pink); cursor: pointer; margin-top: 8px; }
+  .photo-upload p { color: var(--warm-gray); font-size: 11px; margin-top: 3px; }
+  .photo-upload input { display: none; }
+  .photo-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .photo-thumb { position: relative; width: calc(33.333% - 4px); aspect-ratio: 1; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid var(--pink); }
+  .photo-thumb .remove-photo { position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; background: var(--deep-pink); color: white; border-radius: 50%; border: none; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+  .preview-page { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px var(--shadow); margin-bottom: 16px; }
+  .preview-cover { background: linear-gradient(160deg, var(--deep-pink) 0%, var(--pink) 60%, #fde 100%); padding: 34px 24px; text-align: center; min-height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .preview-cover-img { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 4px solid rgba(255,255,255,0.6); margin-bottom: 12px; }
+  .preview-cover h2 { font-family: 'Shippori Mincho', serif; color: white; font-size: 19px; }
+  .preview-cover .author { color: rgba(255,255,255,0.85); font-size: 12px; margin-top: 5px; }
+  .preview-body { padding: 18px; }
+  .preview-section { margin-bottom: 16px; }
+  .preview-section h3 { font-size: 13px; color: var(--deep-pink); border-bottom: 1px solid var(--light-pink); padding-bottom: 5px; margin-bottom: 8px; }
+  .preview-material { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; border-bottom: 1px dotted #eee; }
+  .preview-step { display: flex; gap: 10px; margin-bottom: 14px; align-items: flex-start; }
+  .preview-step-num { flex-shrink: 0; width: 24px; height: 24px; background: var(--deep-pink); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .preview-step-content { flex: 1; }
+  .preview-step-content p { font-size: 13px; line-height: 1.7; }
+  .preview-step-imgs { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .preview-step-imgs img { width: 78px; height: 78px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--light-pink); }
+  .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 8px 10px; box-shadow: 0 -4px 20px var(--shadow); display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: var(--deep-pink); color: white; padding: 10px 20px; border-radius: 50px; font-size: 13px; z-index: 1000; opacity: 0; transition: opacity 0.3s; white-space: nowrap; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .cover-photo-area { width: 110px; height: 110px; border-radius: 50%; border: 3px dashed var(--pink); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; margin: 0 auto 8px; background: var(--light-pink); overflow: hidden; }
+  .cover-photo-area img { width: 100%; height: 100%; object-fit: cover; }
+  #coverPhotoInput { display: none; }
+
+  /* バックアップパネル */
+  .backup-panel { background: #e8f5e9; border: 1.5px solid #a5d6a7; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .backup-panel h3 { font-size: 13px; color: #2e7d32; margin-bottom: 8px; }
+  .backup-panel p { font-size: 12px; color: #388e3c; margin-bottom: 10px; line-height: 1.6; }
+  .backup-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  #backupTextArea { font-size: 11px; font-family: monospace; height: 120px; background: white; border-color: #a5d6a7; margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎀 クラフトバンド レシピメーカー</h1>
+  <p>写真と説明を入力するだけで、レシピが完成します</p>
+  <div class="save-indicator" id="saveIndicator">💾 自動保存オン</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('info',this)"><span class="tab-icon">📝</span>基本情報</div>
+  <div class="tab" onclick="switchTab('materials',this)"><span class="tab-icon">🧵</span>材料</div>
+  <div class="tab" onclick="switchTab('steps',this)"><span class="tab-icon">📸</span>手順</div>
+  <div class="tab" onclick="switchTab('preview',this)"><span class="tab-icon">👁</span>プレビュー</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- 基本情報 -->
+<div class="content active" id="tab-info">
+
+  <!-- バックアップパネル -->
+  <div class="backup-panel">
+    <h3>🛡️ データのバックアップ・復元</h3>
+    <p>入力内容が消えてしまっても安心！<br>「バックアップを保存」でテキストをコピーしておくと、いつでも復元できます。</p>
+    <div class="backup-btns">
+      <button class="btn btn-success btn-sm" onclick="exportBackup()">📋 バックアップをコピー</button>
+      <button class="btn btn-secondary btn-sm" onclick="toggleImport()">📥 バックアップから復元</button>
+    </div>
+    <textarea id="backupTextArea" placeholder="ここにバックアップテキストを貼り付けて「復元する」を押してください"></textarea>
+    <div id="importBtnArea" style="display:none; margin-top:8px">
+      <button class="btn btn-primary btn-sm" onclick="importBackup()">✅ 復元する</button>
+      <button class="btn btn-secondary btn-sm" onclick="toggleImport()">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📌 作品の基本情報</div>
+    <div style="text-align:center;margin-bottom:12px">
+      <div class="cover-photo-area" onclick="document.getElementById('coverPhotoInput').click()">
+        <img id="coverPreview" src="" style="display:none">
+        <div id="coverPlaceholder" style="text-align:center"><div style="font-size:26px">📷</div><div style="font-size:10px;color:var(--warm-gray);margin-top:2px">完成写真</div></div>
+      </div>
+      <input type="file" id="coverPhotoInput" accept="image/*" onchange="setCoverPhoto(this)">
+      <p style="font-size:11px;color:var(--warm-gray)">タップして完成写真を追加</p>
+    </div>
+    <label>作品名 ＊</label>
+    <input type="text" id="titleInput" placeholder="例：サンタブーツ（4本幅・ミニ）" oninput="autoSave()">
+    <label>作者名</label>
+    <input type="text" id="authorInput" placeholder="例：なべちゃん（丹羽敬子）" oninput="autoSave()">
+    <label>難易度</label>
+    <select id="difficultyInput" onchange="autoSave()">
+      <option value="★☆☆">★☆☆ 初級</option>
+      <option value="★★☆" selected>★★☆ 中級</option>
+      <option value="★★★">★★★ 上級</option>
+    </select>
+    <label>完成サイズ</label>
+    <input type="text" id="sizeInput" placeholder="例：横幅約10cm × 高さ約8cm" oninput="autoSave()">
+    <label>所要時間（目安）</label>
+    <input type="text" id="timeInput" placeholder="例：約2〜3時間" oninput="autoSave()">
+    <label>まえがき・ひとこと</label>
+    <textarea id="noteInput" placeholder="例：色を変えて作ることで、どのひもがどこを通るかわかりやすくなります。" oninput="autoSave()"></textarea>
+  </div>
+  <div class="card">
+    <div class="card-title">🔧 使用する道具</div>
+    <div id="toolsList">
+      <div class="material-row"><input type="text" placeholder="例：はさみ" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button></div>
+      <div class="material-row"><input type="text" placeholder="例：メジャー" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button></div>
+      <div class="material-row"><input type="text" placeholder="例：ボンド" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button></div>
+    </div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addTool()">＋ 道具を追加</button>
+  </div>
+  <div class="card">
+    <div class="card-title">⚠️ 著作権・連絡先</div>
+    <label>著作権表記</label>
+    <input type="text" id="copyrightInput" placeholder="例：© 丹羽敬子（なべちゃん）" oninput="autoSave()">
+    <label>SNSハッシュタグ（任意）</label>
+    <input type="text" id="hashtagInput" placeholder="例：#なべちゃんのサンタブーツ" oninput="autoSave()">
+    <label>問い合わせ先（任意）</label>
+    <input type="text" id="contactInput" placeholder="例：nabechan1128@icloud.com" oninput="autoSave()">
+  </div>
+</div>
+
+<!-- 材料 -->
+<div class="content" id="tab-materials">
+  <div class="card">
+    <div class="card-title">🧵 使用する材料</div>
+    <p style="font-size:12px;color:var(--warm-gray);margin-bottom:10px">ひもの色・幅・本数・長さを入力してください</p>
+    <div style="display:flex;gap:6px;font-size:11px;color:var(--warm-gray);margin-bottom:6px">
+      <div style="flex:2">材料名・色</div><div style="flex:1">数量・長さ</div><div style="width:36px"></div>
+    </div>
+    <div id="materialsList">
+      <div class="material-row"><input type="text" placeholder="例：ピンク縦ひも（4本幅）" style="flex:2" oninput="autoSave()"><input type="text" placeholder="例：90cm×6本" style="flex:1" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button></div>
+      <div class="material-row"><input type="text" placeholder="例：ピンク横ひも（4本幅）" style="flex:2" oninput="autoSave()"><input type="text" placeholder="例：80cm×6本" style="flex:1" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button></div>
+      <div class="material-row"><input type="text" placeholder="例：白縁ひも（4本幅）" style="flex:2" oninput="autoSave()"><input type="text" placeholder="例：60cm×1本" style="flex:1" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button></div>
+    </div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addMaterial()">＋ 材料を追加</button>
+  </div>
+  <div class="card">
+    <div class="card-title">💡 材料についての補足</div>
+    <textarea id="materialNoteInput" placeholder="例：クラフトバンドのメーカーが違っても、幅が同じであれば大丈夫です。" oninput="autoSave()"></textarea>
+  </div>
+</div>
+
+<!-- 手順 -->
+<div class="content" id="tab-steps">
+  <div class="card" style="text-align:center;padding:14px">
+    <p style="font-size:12px;color:var(--warm-gray);margin-bottom:10px">📸 写真を選んで説明を入力するだけ！</p>
+    <button class="btn btn-primary" onclick="addStep()">＋ 手順を追加する</button>
+  </div>
+  <div id="stepsList"></div>
+</div>
+
+<!-- プレビュー -->
+<div class="content" id="tab-preview">
+  <div id="previewContent">
+    <div style="text-align:center;padding:40px 20px;color:var(--warm-gray)">
+      <div style="font-size:48px;margin-bottom:12px">📖</div>
+      <p style="font-size:14px">「プレビュー更新」を<br>タップしてください</p>
+    </div>
+  </div>
+</div>
+
+<div class="action-bar">
+  <button class="btn btn-success btn-sm" onclick="exportBackup()">📋 バックアップ</button>
+  <button class="btn btn-primary" onclick="showPreview()">👁 プレビュー更新</button>
+  <button class="btn btn-secondary btn-sm" onclick="printRecipe()">🖨 印刷</button>
+  <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑 リセット</button>
+</div>
+
+<script>
+function switchTab(tab, el) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'preview') showPreview();
+}
+
+let saveTimer = null;
+let stepData = [];
+
+function autoSave() {
+  clearTimeout(saveTimer);
+  document.getElementById('saveIndicator').textContent = '⏳ 保存中…';
+  saveTimer = setTimeout(saveAllData, 1500);
+}
+
+function collectData() {
+  return {
+    title: v('titleInput'), author: v('authorInput'),
+    difficulty: v('difficultyInput'), size: v('sizeInput'),
+    time: v('timeInput'), note: v('noteInput'),
+    copyright: v('copyrightInput'), hashtag: v('hashtagInput'),
+    contact: v('contactInput'), materialNote: v('materialNoteInput'),
+    coverPhoto: document.getElementById('coverPreview').src || '',
+    tools: Array.from(document.querySelectorAll('#toolsList .material-row input')).map(i => i.value),
+    materials: Array.from(document.querySelectorAll('#materialsList .material-row')).map(row => {
+      const ins = row.querySelectorAll('input');
+      return { name: ins[0]?.value||'', qty: ins[1]?.value||'' };
+    }),
+    steps: stepData
+  };
+}
+
+function saveAllData() {
+  try {
+    const data = collectData();
+    // 写真なしバージョンをlocalStorageに保存（容量節約）
+    const dataNoPhotos = JSON.parse(JSON.stringify(data));
+    dataNoPhotos.coverPhoto = '';
+    dataNoPhotos.steps = dataNoPhotos.steps.map(s => ({...s, imgs:[]}));
+    localStorage.setItem('craftRecipe', JSON.stringify(dataNoPhotos));
+    // 写真込みは別キーに試みる
+    try { localStorage.setItem('craftRecipeFull', JSON.stringify(data)); } catch(e) {}
+    document.getElementById('saveIndicator').textContent = '✅ 自動保存済み';
+  } catch(e) {
+    document.getElementById('saveIndicator').textContent = '⚠️ 保存エラー（バックアップを！）';
+    showToast('⚠️ 保存できませんでした。バックアップボタンを押してください！');
+  }
+}
+
+// ====== バックアップ機能 ======
+function exportBackup() {
+  try {
+    const data = collectData();
+    // 写真は除いてテキストのみバックアップ
+    const backupData = JSON.parse(JSON.stringify(data));
+    backupData.coverPhoto = ''; // 写真は除外
+    backupData.steps = backupData.steps.map(s => ({...s, imgs:[]}));
+    const json = JSON.stringify(backupData, null, 2);
+
+    // クリップボードにコピー
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(json).then(() => {
+        showToast('📋 バックアップをコピーしました！メモアプリ等に貼り付けて保存してください');
+      }).catch(() => showBackupText(json));
+    } else {
+      showBackupText(json);
+    }
+  } catch(e) {
+    showToast('エラーが発生しました');
+  }
+}
+
+function showBackupText(json) {
+  const area = document.getElementById('backupTextArea');
+  area.value = json;
+  area.style.display = 'block';
+  area.select();
+  showToast('テキストを全選択してコピーしてください');
+  // 基本情報タブに移動
+  switchTab('info', document.querySelector('.tab'));
+}
+
+function toggleImport() {
+  const area = document.getElementById('backupTextArea');
+  const btnArea = document.getElementById('importBtnArea');
+  const isVisible = area.style.display !== 'none' && btnArea.style.display !== 'none';
+  if (isVisible) {
+    area.style.display = 'none';
+    btnArea.style.display = 'none';
+    area.value = '';
+  } else {
+    area.style.display = 'block';
+    btnArea.style.display = 'block';
+    area.value = '';
+    area.placeholder = 'ここにバックアップテキストを貼り付けて「復元する」を押してください';
+    area.focus();
+  }
+}
+
+function importBackup() {
+  const text = document.getElementById('backupTextArea').value.trim();
+  if (!text) { showToast('テキストを貼り付けてください'); return; }
+  try {
+    const data = JSON.parse(text);
+    applyData(data);
+    document.getElementById('backupTextArea').style.display = 'none';
+    document.getElementById('importBtnArea').style.display = 'none';
+    showToast('✅ データを復元しました！');
+    autoSave();
+  } catch(e) {
+    showToast('❌ バックアップデータが正しくありません');
+  }
+}
+
+function applyData(d) {
+  const fields = ['title','author','size','time','note','copyright','hashtag','contact','materialNote'];
+  fields.forEach(f => { if (d[f] !== undefined) { const el = document.getElementById(f+'Input'); if(el) el.value = d[f]; }});
+  if (d.difficulty) document.getElementById('difficultyInput').value = d.difficulty;
+  if (d.coverPhoto && d.coverPhoto.startsWith('data:')) {
+    const img = document.getElementById('coverPreview');
+    img.src = d.coverPhoto; img.style.display = 'block';
+    document.getElementById('coverPlaceholder').style.display = 'none';
+  }
+  if (d.tools?.length) {
+    document.getElementById('toolsList').innerHTML = '';
+    d.tools.forEach(t => document.getElementById('toolsList').appendChild(mkToolRow(t)));
+  }
+  if (d.materials?.length) {
+    document.getElementById('materialsList').innerHTML = '';
+    d.materials.forEach(m => document.getElementById('materialsList').appendChild(mkMatRow(m.name, m.qty)));
+  }
+  if (d.steps?.length) {
+    document.getElementById('stepsList').innerHTML = '';
+    stepData = d.steps;
+    stepData.forEach((s,i) => renderStep(s,i));
+  }
+}
+
+function loadSavedData() {
+  try {
+    // まず写真込みを試みる
+    let saved = localStorage.getItem('craftRecipeFull') || localStorage.getItem('craftRecipe');
+    if (!saved) return;
+    const d = JSON.parse(saved);
+    applyData(d);
+    document.getElementById('saveIndicator').textContent = '✅ 前回のデータを復元';
+    showToast('✨ 前回の入力内容を復元しました！');
+  } catch(e) {}
+}
+
+function v(id) { return document.getElementById(id)?.value || ''; }
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function setCoverPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('coverPreview');
+    img.src = e.target.result; img.style.display = 'block';
+    document.getElementById('coverPlaceholder').style.display = 'none';
+    autoSave();
+  };
+  reader.readAsDataURL(file);
+}
+
+function mkToolRow(val) {
+  const div = document.createElement('div'); div.className = 'material-row';
+  div.innerHTML = `<input type="text" value="${escHtml(val)}" placeholder="道具名" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button>`;
+  return div;
+}
+function addTool() { document.getElementById('toolsList').appendChild(mkToolRow('')); }
+
+function mkMatRow(name, qty) {
+  const div = document.createElement('div'); div.className = 'material-row';
+  div.innerHTML = `<input type="text" value="${escHtml(name)}" placeholder="材料名・色" style="flex:2" oninput="autoSave()"><input type="text" value="${escHtml(qty)}" placeholder="数量・長さ" style="flex:1" oninput="autoSave()"><button class="btn btn-danger" onclick="removeRow(this)">✕</button>`;
+  return div;
+}
+function addMaterial() { document.getElementById('materialsList').appendChild(mkMatRow('','')); }
+function removeRow(btn) { btn.closest('.material-row').remove(); autoSave(); }
+
+let stepCounter = 0;
+function addStep() {
+  const id = ++stepCounter;
+  const s = { id, text: '', note: '', imgs: [] };
+  stepData.push(s);
+  renderStep(s, stepData.length - 1);
+  setTimeout(() => document.getElementById('sc-'+id)?.scrollIntoView({behavior:'smooth',block:'start'}), 100);
+  showToast('手順 ' + stepData.length + ' を追加しました');
+}
+
+function renderStep(s, index) {
+  const id = s.id;
+  const div = document.createElement('div');
+  div.className = 'step-card'; div.id = 'sc-' + id;
+  div.innerHTML = `
+    <div class="step-header">
+      <div class="step-number" id="sn-${id}">${index+1}</div>
+      <button class="btn btn-danger btn-sm" onclick="removeStep(${id})">この手順を削除</button>
+    </div>
+    <label>説明文</label>
+    <textarea id="st-${id}" placeholder="例：縦ひも3本にボンドをつけ、3mmずらして貼り合わせます。" oninput="upText(${id})">${escHtml(s.text)}</textarea>
+    <label>補足メモ（任意）</label>
+    <input type="text" id="sn2-${id}" value="${escHtml(s.note)}" placeholder="例：ひもの先は斜めにカットしておく" oninput="upNote(${id})">
+    <label>写真（複数OK）</label>
+    <div class="photo-upload" onclick="document.getElementById('sp-${id}').click()">
+      <div style="font-size:22px">📷</div>
+      <p>タップして写真を追加（複数選択OK）</p>
+      <input type="file" id="sp-${id}" accept="image/*" multiple onchange="addPhotos(this,${id})">
+    </div>
+    <div class="photo-preview" id="pp-${id}"></div>`;
+  document.getElementById('stepsList').appendChild(div);
+  if (s.imgs?.length) s.imgs.forEach((src,i) => addThumb(id, src, i));
+}
+
+function upText(id) { const s = stepData.find(s=>s.id===id); if(s) s.text = document.getElementById('st-'+id)?.value||''; autoSave(); }
+function upNote(id) { const s = stepData.find(s=>s.id===id); if(s) s.note = document.getElementById('sn2-'+id)?.value||''; autoSave(); }
+
+function removeStep(id) {
+  stepData = stepData.filter(s=>s.id!==id);
+  document.getElementById('sc-'+id)?.remove();
+  stepData.forEach((s,i) => { const el = document.getElementById('sn-'+s.id); if(el) el.textContent = i+1; });
+  autoSave();
+}
+
+function addPhotos(input, stepId) {
+  const s = stepData.find(s=>s.id===stepId); if (!s) return;
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const src = e.target.result;
+      const idx = s.imgs.length;
+      s.imgs.push(src);
+      addThumb(stepId, src, idx);
+      autoSave();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function addThumb(stepId, src, idx) {
+  const pp = document.getElementById('pp-'+stepId); if (!pp) return;
+  const w = document.createElement('div');
+  w.className = 'photo-thumb'; w.id = 'th-'+stepId+'-'+idx;
+  w.innerHTML = `<img src="${src}" alt="工程写真"><button class="remove-photo" onclick="rmPhoto(${stepId},${idx})">✕</button>`;
+  pp.appendChild(w);
+}
+
+function rmPhoto(stepId, idx) {
+  const s = stepData.find(s=>s.id===stepId);
+  if (s) s.imgs.splice(idx,1);
+  document.getElementById('th-'+stepId+'-'+idx)?.remove();
+  autoSave();
+}
+
+function showPreview() {
+  const title = v('titleInput') || '（作品名未入力）';
+  const author = v('authorInput'), difficulty = v('difficultyInput');
+  const size = v('sizeInput'), time = v('timeInput'), note = v('noteInput');
+  const copyright = v('copyrightInput'), hashtag = v('hashtagInput'), contact = v('contactInput');
+  const materialNote = v('materialNoteInput');
+  const coverSrc = document.getElementById('coverPreview').src;
+  const tools = Array.from(document.querySelectorAll('#toolsList .material-row input')).map(i=>i.value).filter(Boolean);
+  const materials = Array.from(document.querySelectorAll('#materialsList .material-row')).map(row=>{
+    const ins = row.querySelectorAll('input'); return {name:ins[0]?.value||'',qty:ins[1]?.value||''};
+  }).filter(m=>m.name);
+
+  let html = `<div class="preview-page"><div class="preview-cover">
+    ${coverSrc&&coverSrc.startsWith('data:')?`<img class="preview-cover-img" src="${coverSrc}">`:'<div style="font-size:54px;margin-bottom:10px">🎀</div>'}
+    <h2>${title}</h2>
+    ${author?`<p class="author">by ${author}</p>`:''}
+    <div style="margin-top:8px;display:flex;gap:10px;justify-content:center;font-size:12px;color:rgba(255,255,255,0.9);flex-wrap:wrap;">
+      ${difficulty?`<span>難易度 ${difficulty}</span>`:''}${size?`<span>📐 ${size}</span>`:''}${time?`<span>⏱ ${time}</span>`:''}
+    </div></div><div class="preview-body">`;
+
+  if (note) html += `<div class="preview-section"><p style="font-size:13px;line-height:1.8;color:var(--warm-gray)">${note.replace(/\n/g,'<br>')}</p></div>`;
+  if (tools.length) html += `<div class="preview-section"><h3>🔧 使用する道具</h3><p style="font-size:13px">${tools.join('　/　')}</p></div>`;
+  if (materials.length) {
+    html += `<div class="preview-section"><h3>🧵 使用する材料</h3>`;
+    materials.forEach(m => html += `<div class="preview-material"><span>${m.name}</span><span style="color:var(--warm-gray)">${m.qty}</span></div>`);
+    if (materialNote) html += `<p style="font-size:11px;color:var(--warm-gray);margin-top:8px">${materialNote}</p>`;
+    html += `</div>`;
+  }
+  if (stepData.length) {
+    html += `<div class="preview-section"><h3>📸 作り方</h3>`;
+    stepData.forEach((s,i) => {
+      html += `<div class="preview-step"><div class="preview-step-num">${i+1}</div><div class="preview-step-content">
+        <p>${(s.text||'').replace(/\n/g,'<br>')}</p>
+        ${s.note?`<p style="font-size:11px;color:var(--warm-gray);margin-top:3px">※ ${s.note}</p>`:''}
+        ${s.imgs?.length?`<div class="preview-step-imgs">${s.imgs.map(src=>`<img src="${src}">`).join('')}</div>`:''}
+      </div></div>`;
+    });
+    html += `</div>`;
+  }
+  if (copyright||hashtag||contact) {
+    html += `<div class="preview-section" style="border-top:1px solid var(--light-pink);padding-top:12px;margin-top:12px"><h3>📋 著作権について</h3>
+      ${copyright?`<p style="font-size:12px;margin-bottom:5px">${copyright}</p>`:''}
+      ${hashtag?`<p style="font-size:12px;color:var(--deep-pink);margin-bottom:4px">${hashtag}</p>`:''}
+      ${contact?`<p style="font-size:11px;color:var(--warm-gray)">${contact}</p>`:''}
+    </div>`;
+  }
+  html += `</div></div>`;
+  document.getElementById('previewContent').innerHTML = html;
+  showToast('プレビューを更新しました');
+}
+
+function clearAll() {
+  if (!confirm('すべての入力内容を消去しますか？\nこの操作は元に戻せません。')) return;
+  localStorage.removeItem('craftRecipe');
+  localStorage.removeItem('craftRecipeFull');
+  location.reload();
+}
+
+function printRecipe() { showPreview(); setTimeout(() => window.print(), 600); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+window.addEventListener('load', () => {
+  loadSavedData();
+  if (stepData.length === 0) addStep();
+});
+</script>
+</body>
+</html>
