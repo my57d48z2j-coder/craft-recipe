@@ -90,7 +90,7 @@
   .card { box-shadow: none !important; }
 </style>
 </head>
-<body>
+<body onkeydown="if(event.keyCode==13&&event.target.tagName=='INPUT'){event.preventDefault();}">
 <header>
   <h1>🎀 クラフトバンド レシピメーカー</h1>
   <p>写真と説明を入力するだけで、レシピが完成します</p>
